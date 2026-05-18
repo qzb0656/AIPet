@@ -1,0 +1,12 @@
+{
+  "name": "codepet-desktop",
+  "version": "0.1.0",
+  "description": "一个 Electron 桌面桌宠最小基础版本",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}

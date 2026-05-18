@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodePet 桌宠</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main id="pet-stage" class="pet-stage" aria-label="CodePet 桌宠">
+    <div id="bubble" class="bubble" aria-live="polite"></div>
+
+    <div id="pet" class="pet" aria-label="拖动 CodePet 桌宠">
+      <img id="pet-image" class="pet-image" src="./assets/pet/pet-normal.png" alt="CodePet 桌宠" draggable="false">
+      <button id="talk-hotspot" class="talk-hotspot" type="button" aria-label="点击桌宠说话"></button>
+    </div>
+
+    <section id="chat-panel" class="chat-panel" aria-label="聊天面板">
+      <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
+      <form id="chat-form" class="chat-form">
+        <textarea id="chat-input" class="chat-input" rows="2" placeholder="问问 CodePet..."></textarea>
+        <button id="chat-submit" class="chat-submit" type="submit">发送</button>
+      </form>
+    </section>
+
+    <section id="settings-panel" class="settings-panel" aria-live="polite" hidden>
+      <button id="close-settings-panel" class="close-panel" type="button" aria-label="关闭 AI 设置">×</button>
+      <h2>AI 设置</h2>
+      <form id="settings-form" class="settings-form">
+        <label>
+          <span>AI 接口地址</span>
+          <input id="base-url-input" type="url" autocomplete="off">
+        </label>
+        <label>
+          <span>API Key</span>
+          <input id="api-key-input" type="password" placeholder="留空则继续使用已保存的 Key" autocomplete="new-password" spellcheck="false">
+        </label>
+        <label>
+          <span>模型名称</span>
+          <input id="model-input" type="text" autocomplete="off">
+        </label>
+        <label>
+          <span>接口格式</span>
+          <select id="api-format-input">
+            <option value="anthropic_messages">Anthropic Messages</option>
+            <option value="openai_responses">OpenAI Responses</option>
+            <option value="openai_chat">OpenAI Chat Completions</option>
+          </select>
+        </label>
+        <label class="checkbox-label">
+          <input id="auto-launch-input" type="checkbox">
+          <span>开机自启动</span>
+        </label>
+        <p id="api-key-status" class="setting-status"></p>
+        <div class="settings-actions">
+          <button id="save-settings" class="save-settings" type="submit">保存并应用</button>
+          <button id="test-connection" class="test-connection" type="button">测试连接</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="file-panel" class="file-panel" aria-live="polite" hidden>
+      <button id="close-panel" class="close-panel" type="button" aria-label="关闭文件内容">×</button>
+      <dl class="file-meta">
+        <div>
+          <dt>文件名</dt>
+          <dd id="file-name"></dd>
+        </div>
+        <div>
+          <dt>文件类型</dt>
+          <dd id="file-type"></dd>
+        </div>
+        <div>
+          <dt>文件大小</dt>
+          <dd id="file-size"></dd>
+        </div>
+      </dl>
+      <p id="file-note" class="file-note"></p>
+      <pre id="file-preview" class="file-preview"></pre>
+      <div class="analysis-header">
+        <strong>AI 分析</strong>
+        <button id="copy-analysis" class="copy-analysis" type="button">复制</button>
+      </div>
+      <pre id="file-analysis" class="file-analysis"></pre>
+    </section>
+  </main>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>

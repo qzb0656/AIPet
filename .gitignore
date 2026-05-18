@@ -1,0 +1,18 @@
+node_modules/
+dist/
+build/
+out/
+*.log
+
+# Local runtime settings and secrets.
+auth.json
+config/settings.json
+config.toml
+.env
+.env.*
+
+# OS/editor files.
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
