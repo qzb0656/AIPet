@@ -43,9 +43,7 @@ $derivedFrames = @(
   @{ Source = "pet-normal.png"; File = "pet-sleep.png"; Rotate = 0; X = 0; Y = 20 },
   @{ Source = "pet-normal.png"; File = "pet-sleep-2.png"; Rotate = 0; X = 0; Y = 26 },
   @{ Source = "pet-error.png"; File = "pet-angry.png"; Rotate = 0; X = 0; Y = 0 },
-  @{ Source = "pet-error.png"; File = "pet-angry-2.png"; Rotate = 0; X = -8; Y = 0 },
-  @{ Source = "pet-walking-1.png"; File = "pet-wall-climb.png"; Rotate = -18; X = -24; Y = 0 },
-  @{ Source = "pet-walking-2.png"; File = "pet-wall-climb-2.png"; Rotate = -18; X = -24; Y = -12 }
+  @{ Source = "pet-error.png"; File = "pet-angry-2.png"; Rotate = 0; X = -8; Y = 0 }
 )
 
 try {

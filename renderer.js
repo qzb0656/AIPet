@@ -61,8 +61,6 @@ const PET_IMAGES = {
   eating: './assets/pet/pet-eating.png',
   walking: './assets/pet/pet-walking-1.png',
   walking2: './assets/pet/pet-walking-2.png',
-  wallClimb: './assets/pet/pet-wall-climb.png',
-  wallClimb2: './assets/pet/pet-wall-climb-2.png',
   sleep: './assets/pet/pet-sleep.png',
   sleep2: './assets/pet/pet-sleep-2.png',
   angry: './assets/pet/pet-angry.png',
@@ -74,7 +72,6 @@ const PET_FRAME_ANIMATIONS = {
   normal: { frames: ['normal', 'normal2'], interval: 1200 },
   happy: { frames: ['happy', 'happy2'], interval: 420 },
   walking: { frames: ['walking', 'walking2'], interval: 220 },
-  wallClimb: { frames: ['wallClimb', 'wallClimb2'], interval: 220 },
   thinking: { frames: ['thinking', 'thinking2'], interval: 520 },
   error: { frames: ['error', 'error2', 'error', 'thinking2'], interval: 280 },
   surprised: { frames: ['surprised', 'surprised2', 'surprised'], interval: 240 },
@@ -107,7 +104,6 @@ let freeWalkTimer = null;
 let isWalkingMovePending = false;
 let walkingDirection = 1;
 let isSleeping = false;
-let isWallClimbing = false;
 let dragDepth = 0;
 let isCallingAI = false;
 let isPetTaskActive = false;
@@ -168,22 +164,6 @@ function stopFreeWalk() {
   freeWalkTimer = null;
 }
 
-async function playWallClingAnimation(edgeDirection = walkingDirection) {
-  if (isWallClimbing) {
-    return;
-  }
-
-  isWallClimbing = true;
-  stopWalkingMovement();
-  setPetState('wallClimb');
-
-  await wait(2600);
-
-  isWallClimbing = false;
-  setPetState('walking');
-  walkingDirection = -edgeDirection;
-}
-
 function startWalkingMovement(duration = 12000) {
   stopWalkingMovement();
   walkingDirection = Math.random() > 0.5 ? 1 : -1;
@@ -209,7 +189,7 @@ function startWalkingMovement(duration = 12000) {
       });
 
       if (result?.hitEdge) {
-        await playWallClingAnimation(walkingDirection);
+        walkingDirection *= -1;
       }
     } finally {
       isWalkingMovePending = false;
@@ -249,7 +229,7 @@ function getRandomDailyState() {
 }
 
 function isPetBusy() {
-  return isSleeping || isWallClimbing || isCallingAI || isPetTaskActive || dragDepth > 0 || normalTimer || pet.classList.contains('is-eating');
+  return isSleeping || isCallingAI || isPetTaskActive || dragDepth > 0 || normalTimer || pet.classList.contains('is-eating');
 }
 
 function clearDailyStateReset() {
@@ -622,11 +602,6 @@ function handleMenuAction(data) {
 
     if (payload.state === 'sleep') {
       startSleep();
-      return;
-    }
-
-    if (payload.state === 'wallClimb') {
-      playWallClingAnimation();
       return;
     }
 

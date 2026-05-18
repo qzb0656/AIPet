@@ -126,7 +126,6 @@ function showPetMenu() {
         { label: '移动', click: () => sendMenuAction('set-state', { state: 'walking' }) },
         { label: '思考', click: () => sendMenuAction('set-state', { state: 'thinking' }) },
         { label: '吃文件', click: () => sendMenuAction('set-state', { state: 'eating' }) },
-        { label: '爬墙', click: () => sendMenuAction('set-state', { state: 'wallClimb' }) },
         { label: '睡觉', click: () => sendMenuAction('set-state', { state: 'sleep' }) },
         { label: '出错', click: () => sendMenuAction('set-state', { state: 'error' }) }
       ]
