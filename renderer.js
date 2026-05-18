@@ -168,7 +168,7 @@ function stopFreeWalk() {
   freeWalkTimer = null;
 }
 
-async function playWallClimbAnimation() {
+async function playWallClingAnimation(edgeDirection = walkingDirection) {
   if (isWallClimbing) {
     return;
   }
@@ -177,19 +177,11 @@ async function playWallClimbAnimation() {
   stopWalkingMovement();
   setPetState('wallClimb');
 
-  for (let i = 0; i < 14; i += 1) {
-    await window.petWindow.moveWindowBy({ dx: 0, dy: -5 });
-    await wait(90);
-  }
-
-  for (let i = 0; i < 10; i += 1) {
-    await window.petWindow.moveWindowBy({ dx: 0, dy: 4 });
-    await wait(90);
-  }
+  await wait(2600);
 
   isWallClimbing = false;
-  setPetState('normal');
-  scheduleFreeWalk();
+  setPetState('walking');
+  walkingDirection = -edgeDirection;
 }
 
 function startWalkingMovement(duration = 12000) {
@@ -217,7 +209,7 @@ function startWalkingMovement(duration = 12000) {
       });
 
       if (result?.hitEdge) {
-        await playWallClimbAnimation();
+        await playWallClingAnimation(walkingDirection);
       }
     } finally {
       isWalkingMovePending = false;
@@ -328,6 +320,7 @@ function startSleep() {
   clearDailyStateReset();
   stopFreeWalk();
   stopWalkingMovement();
+  updateMousePassthrough(false);
   setPetState('sleep');
   showBubble('Zzz...', 1800);
 }
@@ -342,6 +335,7 @@ async function wakeFromSleep() {
   showBubble('别吵啦！', 1600);
   await wait(1400);
   setPetState('normal');
+  updateMousePassthrough(true);
   scheduleDailyStateChange(90000);
   scheduleFreeWalk(45000);
 }
@@ -632,7 +626,7 @@ function handleMenuAction(data) {
     }
 
     if (payload.state === 'wallClimb') {
-      playWallClimbAnimation();
+      playWallClingAnimation();
       return;
     }
 

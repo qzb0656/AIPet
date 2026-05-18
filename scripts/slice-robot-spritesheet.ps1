@@ -40,8 +40,8 @@ $motionFrames = @(
 )
 
 $derivedFrames = @(
-  @{ Source = "pet-normal.png"; File = "pet-sleep.png"; Rotate = -90; X = 0; Y = 86 },
-  @{ Source = "pet-normal.png"; File = "pet-sleep-2.png"; Rotate = -90; X = 0; Y = 94 },
+  @{ Source = "pet-normal.png"; File = "pet-sleep.png"; Rotate = 0; X = 0; Y = 20 },
+  @{ Source = "pet-normal.png"; File = "pet-sleep-2.png"; Rotate = 0; X = 0; Y = 26 },
   @{ Source = "pet-error.png"; File = "pet-angry.png"; Rotate = 0; X = 0; Y = 0 },
   @{ Source = "pet-error.png"; File = "pet-angry-2.png"; Rotate = 0; X = -8; Y = 0 },
   @{ Source = "pet-walking-1.png"; File = "pet-wall-climb.png"; Rotate = -18; X = -24; Y = 0 },
@@ -123,6 +123,14 @@ foreach ($frame in $derivedFrames) {
     $overlay = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(54, 255, 42, 42))
     $graphics.FillRectangle($overlay, 0, 0, 512, 512)
     $overlay.Dispose()
+  }
+
+  if ($frame.File -like "pet-sleep*") {
+    $font = [System.Drawing.Font]::new("Arial", 48, [System.Drawing.FontStyle]::Bold)
+    $textBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(220, 130, 235, 255))
+    $graphics.DrawString("Zzz", $font, $textBrush, 320, 70)
+    $font.Dispose()
+    $textBrush.Dispose()
   }
 
   $outPath = Join-Path $outDir $frame.File
