@@ -39,6 +39,15 @@ $motionFrames = @(
   @{ Source = "pet-surprised.png"; File = "pet-surprised-2.png"; X = 0; Y = -5 }
 )
 
+$derivedFrames = @(
+  @{ Source = "pet-normal.png"; File = "pet-sleep.png"; Rotate = -90; X = 0; Y = 86 },
+  @{ Source = "pet-normal.png"; File = "pet-sleep-2.png"; Rotate = -90; X = 0; Y = 94 },
+  @{ Source = "pet-error.png"; File = "pet-angry.png"; Rotate = 0; X = 0; Y = 0 },
+  @{ Source = "pet-error.png"; File = "pet-angry-2.png"; Rotate = 0; X = -8; Y = 0 },
+  @{ Source = "pet-walking-1.png"; File = "pet-wall-climb.png"; Rotate = -18; X = -24; Y = 0 },
+  @{ Source = "pet-walking-2.png"; File = "pet-wall-climb-2.png"; Rotate = -18; X = -24; Y = -12 }
+)
+
 try {
   foreach ($frame in $frames) {
     # Crop out the text label at the bottom of each cell.
@@ -87,6 +96,34 @@ foreach ($frame in $motionFrames) {
   # This adds real frame changes without scaling the character.
   $destRect = [System.Drawing.RectangleF]::new([float]$frame.X, [float]$frame.Y, 512, 512)
   $graphics.DrawImage($sourceFrame, $destRect)
+
+  $outPath = Join-Path $outDir $frame.File
+  $bitmap.Save($outPath, [System.Drawing.Imaging.ImageFormat]::Png)
+  $graphics.Dispose()
+  $bitmap.Dispose()
+  $sourceFrame.Dispose()
+}
+
+foreach ($frame in $derivedFrames) {
+  $sourceFramePath = Join-Path $outDir $frame.Source
+  $sourceFrame = [System.Drawing.Image]::FromFile($sourceFramePath)
+  $bitmap = [System.Drawing.Bitmap]::new(512, 512, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+  $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+  $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+  $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+  $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+  $graphics.Clear([System.Drawing.Color]::Transparent)
+
+  $graphics.TranslateTransform(256 + [float]$frame.X, 256 + [float]$frame.Y)
+  $graphics.RotateTransform([float]$frame.Rotate)
+  $graphics.TranslateTransform(-256, -256)
+  $graphics.DrawImage($sourceFrame, [System.Drawing.RectangleF]::new(0, 0, 512, 512))
+
+  if ($frame.File -like "pet-angry*") {
+    $overlay = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(54, 255, 42, 42))
+    $graphics.FillRectangle($overlay, 0, 0, 512, 512)
+    $overlay.Dispose()
+  }
 
   $outPath = Join-Path $outDir $frame.File
   $bitmap.Save($outPath, [System.Drawing.Imaging.ImageFormat]::Png)

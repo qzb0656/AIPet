@@ -10,6 +10,10 @@ contextBridge.exposeInMainWorld('petWindow', {
     return ipcRenderer.invoke('window:move-by', delta);
   },
 
+  ensureWindowVisible: () => {
+    return ipcRenderer.invoke('window:ensure-visible');
+  },
+
   showContextMenu: () => {
     return ipcRenderer.invoke('menu:show');
   },

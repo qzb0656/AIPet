@@ -55,6 +55,26 @@ function rememberWindowBounds() {
   }, 400);
 }
 
+function getClampedBounds(win, nextBounds = win.getBounds()) {
+  const display = screen.getDisplayMatching(nextBounds);
+  const area = display.workArea;
+  const x = Math.max(area.x, Math.min(area.x + area.width - nextBounds.width, nextBounds.x));
+  const y = Math.max(area.y, Math.min(area.y + area.height - nextBounds.height, nextBounds.y));
+
+  return {
+    bounds: {
+      ...nextBounds,
+      x,
+      y
+    },
+    hitLeft: x === area.x,
+    hitRight: x === area.x + area.width - nextBounds.width,
+    hitTop: y === area.y,
+    hitBottom: y === area.y + area.height - nextBounds.height,
+    hitEdge: x !== nextBounds.x || y !== nextBounds.y
+  };
+}
+
 async function createWindow() {
   const settings = await loadSettings();
 
@@ -103,10 +123,17 @@ function showPetMenu() {
       submenu: [
         { label: '普通', click: () => sendMenuAction('set-state', { state: 'normal' }) },
         { label: '开心', click: () => sendMenuAction('set-state', { state: 'happy' }) },
+        { label: '移动', click: () => sendMenuAction('set-state', { state: 'walking' }) },
         { label: '思考', click: () => sendMenuAction('set-state', { state: 'thinking' }) },
         { label: '吃文件', click: () => sendMenuAction('set-state', { state: 'eating' }) },
+        { label: '爬墙', click: () => sendMenuAction('set-state', { state: 'wallClimb' }) },
+        { label: '睡觉', click: () => sendMenuAction('set-state', { state: 'sleep' }) },
         { label: '出错', click: () => sendMenuAction('set-state', { state: 'error' }) }
       ]
+    },
+    {
+      label: '趴下睡觉',
+      click: () => sendMenuAction('set-state', { state: 'sleep' })
     },
     { type: 'separator' },
     {
@@ -166,23 +193,41 @@ ipcMain.handle('window:move-by', (event, delta) => {
   }
 
   const bounds = win.getBounds();
-  const display = screen.getDisplayMatching(bounds);
-  const area = display.workArea;
   const dx = Number(delta?.dx || 0);
   const dy = Number(delta?.dy || 0);
-  const nextX = Math.max(area.x, Math.min(area.x + area.width - bounds.width, bounds.x + dx));
-  const nextY = Math.max(area.y, Math.min(area.y + area.height - bounds.height, bounds.y + dy));
-  const hitEdge = nextX !== bounds.x + dx || nextY !== bounds.y + dy;
-
-  win.setBounds({
+  const result = getClampedBounds(win, {
     ...bounds,
-    x: nextX,
-    y: nextY
+    x: bounds.x + dx,
+    y: bounds.y + dy
   });
+
+  win.setBounds(result.bounds);
 
   return {
     ok: true,
-    hitEdge
+    hitEdge: result.hitEdge,
+    hitLeft: result.hitLeft,
+    hitRight: result.hitRight,
+    hitTop: result.hitTop,
+    hitBottom: result.hitBottom
+  };
+});
+
+ipcMain.handle('window:ensure-visible', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+
+  if (!win || win.isDestroyed()) {
+    return {
+      ok: false
+    };
+  }
+
+  const result = getClampedBounds(win);
+  win.setBounds(result.bounds);
+
+  return {
+    ok: true,
+    bounds: result.bounds
   };
 });
 

@@ -60,7 +60,13 @@ const PET_IMAGES = {
   chewing2: './assets/pet/pet-chewing-2.png',
   eating: './assets/pet/pet-eating.png',
   walking: './assets/pet/pet-walking-1.png',
-  walking2: './assets/pet/pet-walking-2.png'
+  walking2: './assets/pet/pet-walking-2.png',
+  wallClimb: './assets/pet/pet-wall-climb.png',
+  wallClimb2: './assets/pet/pet-wall-climb-2.png',
+  sleep: './assets/pet/pet-sleep.png',
+  sleep2: './assets/pet/pet-sleep-2.png',
+  angry: './assets/pet/pet-angry.png',
+  angry2: './assets/pet/pet-angry-2.png'
 };
 
 // 用真实图片帧切换做动作，不再依赖 CSS 放大缩小。
@@ -68,16 +74,18 @@ const PET_FRAME_ANIMATIONS = {
   normal: { frames: ['normal', 'normal2'], interval: 1200 },
   happy: { frames: ['happy', 'happy2'], interval: 420 },
   walking: { frames: ['walking', 'walking2'], interval: 220 },
+  wallClimb: { frames: ['wallClimb', 'wallClimb2'], interval: 220 },
   thinking: { frames: ['thinking', 'thinking2'], interval: 520 },
   error: { frames: ['error', 'error2', 'error', 'thinking2'], interval: 280 },
-  surprised: { frames: ['surprised', 'surprised2', 'surprised'], interval: 240 }
+  surprised: { frames: ['surprised', 'surprised2', 'surprised'], interval: 240 },
+  sleep: { frames: ['sleep', 'sleep2'], interval: 1100 },
+  angry: { frames: ['angry', 'angry2'], interval: 180 }
 };
 
 const dailyStates = [
-  { state: 'normal', duration: 8000 },
-  { state: 'happy', duration: 4500 },
-  { state: 'walking', duration: 9000 },
-  { state: 'thinking', duration: 5500 }
+  { state: 'normal', duration: 14000 },
+  { state: 'happy', duration: 6000 },
+  { state: 'thinking', duration: 7000 }
 ];
 
 const messages = [
@@ -95,8 +103,11 @@ let dailyStateTimer = null;
 let dailyStateResetTimer = null;
 let petFrameTimer = null;
 let walkingMoveTimer = null;
+let freeWalkTimer = null;
 let isWalkingMovePending = false;
 let walkingDirection = 1;
+let isSleeping = false;
+let isWallClimbing = false;
 let dragDepth = 0;
 let isCallingAI = false;
 let isPetTaskActive = false;
@@ -140,12 +151,60 @@ function stopWalkingMovement() {
   isWalkingMovePending = false;
 }
 
-function startWalkingMovement() {
+function scheduleFreeWalk(delay = getRandomDelay(65000, 140000)) {
+  clearTimeout(freeWalkTimer);
+  freeWalkTimer = setTimeout(() => {
+    if (isPetBusy()) {
+      scheduleFreeWalk(15000);
+      return;
+    }
+
+    setPetState('walking');
+  }, delay);
+}
+
+function stopFreeWalk() {
+  clearTimeout(freeWalkTimer);
+  freeWalkTimer = null;
+}
+
+async function playWallClimbAnimation() {
+  if (isWallClimbing) {
+    return;
+  }
+
+  isWallClimbing = true;
+  stopWalkingMovement();
+  setPetState('wallClimb');
+
+  for (let i = 0; i < 14; i += 1) {
+    await window.petWindow.moveWindowBy({ dx: 0, dy: -5 });
+    await wait(90);
+  }
+
+  for (let i = 0; i < 10; i += 1) {
+    await window.petWindow.moveWindowBy({ dx: 0, dy: 4 });
+    await wait(90);
+  }
+
+  isWallClimbing = false;
+  setPetState('normal');
+  scheduleFreeWalk();
+}
+
+function startWalkingMovement(duration = 12000) {
   stopWalkingMovement();
   walkingDirection = Math.random() > 0.5 ? 1 : -1;
+  const startedAt = Date.now();
 
   walkingMoveTimer = setInterval(async () => {
     if (isWalkingMovePending || isPetBusy() || pet.dataset.state !== 'walking') {
+      return;
+    }
+
+    if (Date.now() - startedAt > duration) {
+      setPetState('normal');
+      scheduleFreeWalk();
       return;
     }
 
@@ -158,7 +217,7 @@ function startWalkingMovement() {
       });
 
       if (result?.hitEdge) {
-        walkingDirection *= -1;
+        await playWallClimbAnimation();
       }
     } finally {
       isWalkingMovePending = false;
@@ -169,7 +228,11 @@ function startWalkingMovement() {
 function setPetState(state, useFrameAnimation = true) {
   // 所有状态切换都走这个函数，避免各处直接改图片路径。
   const nextState = PET_IMAGES[state] ? state : 'normal';
-  stopWalkingMovement();
+
+  if (nextState !== 'walking') {
+    stopWalkingMovement();
+  }
+
   pet.dataset.state = nextState;
   stopPetFrameAnimation();
   setPetImage(nextState);
@@ -194,7 +257,7 @@ function getRandomDailyState() {
 }
 
 function isPetBusy() {
-  return isCallingAI || isPetTaskActive || dragDepth > 0 || normalTimer || pet.classList.contains('is-eating');
+  return isSleeping || isWallClimbing || isCallingAI || isPetTaskActive || dragDepth > 0 || normalTimer || pet.classList.contains('is-eating');
 }
 
 function clearDailyStateReset() {
@@ -202,7 +265,7 @@ function clearDailyStateReset() {
   dailyStateResetTimer = null;
 }
 
-function scheduleDailyStateChange(delay = getRandomDelay(45000, 90000)) {
+function scheduleDailyStateChange(delay = getRandomDelay(120000, 240000)) {
   clearTimeout(dailyStateTimer);
   dailyStateTimer = setTimeout(() => {
     if (isPetBusy()) {
@@ -218,6 +281,7 @@ function scheduleDailyStateChange(delay = getRandomDelay(45000, 90000)) {
       setPetState('normal');
       dailyStateResetTimer = null;
       scheduleDailyStateChange();
+      scheduleFreeWalk();
     }, nextState.duration);
   }, delay);
 }
@@ -225,6 +289,7 @@ function scheduleDailyStateChange(delay = getRandomDelay(45000, 90000)) {
 function resetToNormal(delay = 3000) {
   clearTimeout(normalTimer);
   clearTimeout(dailyStateTimer);
+  stopFreeWalk();
   clearDailyStateReset();
 
   normalTimer = setTimeout(() => {
@@ -232,6 +297,7 @@ function resetToNormal(delay = 3000) {
     pet.classList.remove('is-eating');
     normalTimer = null;
     scheduleDailyStateChange();
+    scheduleFreeWalk();
   }, delay);
 }
 
@@ -246,10 +312,38 @@ function showBubble(text, duration = 2500) {
 }
 
 function showRandomBubble() {
+  if (isSleeping) {
+    return;
+  }
+
   const text = messages[Math.floor(Math.random() * messages.length)];
   setPetState('happy');
   showBubble(text);
   resetToNormal(1800);
+}
+
+function startSleep() {
+  isSleeping = true;
+  clearTimeout(dailyStateTimer);
+  clearDailyStateReset();
+  stopFreeWalk();
+  stopWalkingMovement();
+  setPetState('sleep');
+  showBubble('Zzz...', 1800);
+}
+
+async function wakeFromSleep() {
+  if (!isSleeping) {
+    return;
+  }
+
+  isSleeping = false;
+  setPetState('angry');
+  showBubble('别吵啦！', 1600);
+  await wait(1400);
+  setPetState('normal');
+  scheduleDailyStateChange(90000);
+  scheduleFreeWalk(45000);
 }
 
 function isPointerOnInteractiveArea(event) {
@@ -325,6 +419,7 @@ function setChatVisible(visible) {
   chatPanel.hidden = !visible;
 
   if (visible) {
+    window.petWindow.ensureWindowVisible();
     chatInput.focus();
   }
 }
@@ -340,6 +435,7 @@ function showFileInfo(fileInfo) {
   filePreview.textContent = fileInfo.preview;
   fileNote.textContent = fileInfo.isTruncated ? '文件内容较长，已显示前 1000 个字符。' : '';
   filePanel.hidden = false;
+  window.petWindow.ensureWindowVisible();
 }
 
 function setFileAnalysis(text) {
@@ -374,6 +470,7 @@ async function loadSettingsPanelValues() {
 async function openSettingsPanel() {
   await loadSettingsPanelValues();
   settingsPanel.hidden = false;
+  await window.petWindow.ensureWindowVisible();
   apiKeyInput.focus();
 }
 
@@ -527,7 +624,26 @@ function handleMenuAction(data) {
 
   if (action === 'set-state') {
     clearDailyStateReset();
+    stopFreeWalk();
+
+    if (payload.state === 'sleep') {
+      startSleep();
+      return;
+    }
+
+    if (payload.state === 'wallClimb') {
+      playWallClimbAnimation();
+      return;
+    }
+
+    isSleeping = false;
     setPetState(payload.state || 'normal');
+
+    if (payload.state === 'walking') {
+      scheduleDailyStateChange();
+      return;
+    }
+
     resetToNormal(3000);
   }
 }
@@ -536,7 +652,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   // 原生拖动必须让窗口接收鼠标事件，否则 -webkit-app-region: drag 会失效。
   updateMousePassthrough(true);
   setPetState('normal');
-  scheduleDailyStateChange(30000);
+  scheduleDailyStateChange(120000);
+  scheduleFreeWalk(45000);
   appendChatMessage('ai', '你好，我是 CodePet。可以聊天，也可以把文本或代码文件拖给我分析。');
   await loadSettingsPanelValues();
 });
@@ -560,6 +677,18 @@ talkHotspot.addEventListener('click', (event) => {
   event.preventDefault();
   event.stopPropagation();
   showRandomBubble();
+});
+
+pet.addEventListener('dblclick', async (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  await wakeFromSleep();
+});
+
+talkHotspot.addEventListener('dblclick', async (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  await wakeFromSleep();
 });
 
 closeSettingsPanel.addEventListener('click', () => {
