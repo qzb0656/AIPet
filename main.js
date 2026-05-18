@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, clipboard, screen } = require('electron');
 const path = require('path');
 const { callAI, testAIConnection } = require('./services/aiService');
 const { readTextFile } = require('./services/fileService');
@@ -153,6 +153,37 @@ ipcMain.on('window:set-ignore-mouse-events', (event, shouldIgnore) => {
   }
 
   win.setIgnoreMouseEvents(Boolean(shouldIgnore), { forward: true });
+});
+
+ipcMain.handle('window:move-by', (event, delta) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+
+  if (!win || win.isDestroyed()) {
+    return {
+      ok: false,
+      hitEdge: false
+    };
+  }
+
+  const bounds = win.getBounds();
+  const display = screen.getDisplayMatching(bounds);
+  const area = display.workArea;
+  const dx = Number(delta?.dx || 0);
+  const dy = Number(delta?.dy || 0);
+  const nextX = Math.max(area.x, Math.min(area.x + area.width - bounds.width, bounds.x + dx));
+  const nextY = Math.max(area.y, Math.min(area.y + area.height - bounds.height, bounds.y + dy));
+  const hitEdge = nextX !== bounds.x + dx || nextY !== bounds.y + dy;
+
+  win.setBounds({
+    ...bounds,
+    x: nextX,
+    y: nextY
+  });
+
+  return {
+    ok: true,
+    hitEdge
+  };
 });
 
 ipcMain.handle('menu:show', () => {

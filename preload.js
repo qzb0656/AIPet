@@ -6,6 +6,10 @@ contextBridge.exposeInMainWorld('petWindow', {
     ipcRenderer.send('window:set-ignore-mouse-events', shouldIgnore);
   },
 
+  moveWindowBy: (delta) => {
+    return ipcRenderer.invoke('window:move-by', delta);
+  },
+
   showContextMenu: () => {
     return ipcRenderer.invoke('menu:show');
   },

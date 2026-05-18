@@ -65,19 +65,19 @@ const PET_IMAGES = {
 
 // 用真实图片帧切换做动作，不再依赖 CSS 放大缩小。
 const PET_FRAME_ANIMATIONS = {
-  normal: { frames: ['normal', 'normal2', 'walking', 'normal2'], interval: 520 },
-  happy: { frames: ['happy', 'happy2', 'walking', 'happy2'], interval: 260 },
-  walking: { frames: ['walking', 'walking2', 'normal2', 'walking2'], interval: 240 },
-  thinking: { frames: ['thinking', 'thinking2', 'thinking', 'normal2'], interval: 360 },
+  normal: { frames: ['normal', 'normal2'], interval: 1200 },
+  happy: { frames: ['happy', 'happy2'], interval: 420 },
+  walking: { frames: ['walking', 'walking2'], interval: 220 },
+  thinking: { frames: ['thinking', 'thinking2'], interval: 520 },
   error: { frames: ['error', 'error2', 'error', 'thinking2'], interval: 280 },
   surprised: { frames: ['surprised', 'surprised2', 'surprised'], interval: 240 }
 };
 
 const dailyStates = [
-  { state: 'normal', duration: 2600 },
-  { state: 'happy', duration: 2400 },
-  { state: 'walking', duration: 2200 },
-  { state: 'thinking', duration: 3200 }
+  { state: 'normal', duration: 8000 },
+  { state: 'happy', duration: 4500 },
+  { state: 'walking', duration: 9000 },
+  { state: 'thinking', duration: 5500 }
 ];
 
 const messages = [
@@ -94,6 +94,9 @@ let normalTimer = null;
 let dailyStateTimer = null;
 let dailyStateResetTimer = null;
 let petFrameTimer = null;
+let walkingMoveTimer = null;
+let isWalkingMovePending = false;
+let walkingDirection = 1;
 let dragDepth = 0;
 let isCallingAI = false;
 let isPetTaskActive = false;
@@ -131,15 +134,52 @@ function startPetFrameAnimation(state) {
   }, animation.interval);
 }
 
+function stopWalkingMovement() {
+  clearInterval(walkingMoveTimer);
+  walkingMoveTimer = null;
+  isWalkingMovePending = false;
+}
+
+function startWalkingMovement() {
+  stopWalkingMovement();
+  walkingDirection = Math.random() > 0.5 ? 1 : -1;
+
+  walkingMoveTimer = setInterval(async () => {
+    if (isWalkingMovePending || isPetBusy() || pet.dataset.state !== 'walking') {
+      return;
+    }
+
+    isWalkingMovePending = true;
+
+    try {
+      const result = await window.petWindow.moveWindowBy({
+        dx: walkingDirection * 7,
+        dy: 0
+      });
+
+      if (result?.hitEdge) {
+        walkingDirection *= -1;
+      }
+    } finally {
+      isWalkingMovePending = false;
+    }
+  }, 90);
+}
+
 function setPetState(state, useFrameAnimation = true) {
   // 所有状态切换都走这个函数，避免各处直接改图片路径。
   const nextState = PET_IMAGES[state] ? state : 'normal';
+  stopWalkingMovement();
   pet.dataset.state = nextState;
   stopPetFrameAnimation();
   setPetImage(nextState);
 
   if (useFrameAnimation) {
     startPetFrameAnimation(nextState);
+  }
+
+  if (nextState === 'walking' && useFrameAnimation) {
+    startWalkingMovement();
   }
 }
 
@@ -162,7 +202,7 @@ function clearDailyStateReset() {
   dailyStateResetTimer = null;
 }
 
-function scheduleDailyStateChange(delay = getRandomDelay(7000, 15000)) {
+function scheduleDailyStateChange(delay = getRandomDelay(45000, 90000)) {
   clearTimeout(dailyStateTimer);
   dailyStateTimer = setTimeout(() => {
     if (isPetBusy()) {
@@ -496,7 +536,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   // 原生拖动必须让窗口接收鼠标事件，否则 -webkit-app-region: drag 会失效。
   updateMousePassthrough(true);
   setPetState('normal');
-  scheduleDailyStateChange(3500);
+  scheduleDailyStateChange(30000);
   appendChatMessage('ai', '你好，我是 CodePet。可以聊天，也可以把文本或代码文件拖给我分析。');
   await loadSettingsPanelValues();
 });
